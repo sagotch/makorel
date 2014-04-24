@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+USAGE="usage: makorel version [package]"
+
+# with:
+# - package: name of your package version
+# - version: new version to release
+#
+# If no package name is provided, makorel will assume that you are 
+# in the directory of the package you want to release, and in 
+# its parent directory otherwise.
+
+if [ $# -eq 1 ]; then
+    PKG=${PWD##*/}
+elif [ $# -eq 2 ]; then 
+    cd $2;
+    PKG=$2
+else
+    echo "${USAGE}. Exiting with 1."; exit 1
+fi
+
+NEWVERSION=$1
+
+LASTVERSION=$(ls -t | tail -1 | sed -e "s/${PKG}\.\(.*\)/\1/")
+
+if [ -d "${PKG}.${NEWVERSION}" ]; then
+    echo "${PKG}.${NEWVERSION} already exists. Exiting with 1."; exit 1
+else
+    cp -R ${PKG}.${LASTVERSION} ${PKG}.${NEWVERSION}
+fi
+
+URLFILE=${PKG}.${NEWVERSION}/url
+
+URL=$(grep "archive" ${URLFILE} \
+    | sed -e "s/\([ \t]*archive[ \t]*:[ \t]*\"\)\(.*\)${LASTVERSION}\([^\"]*.*\)\"/\2${NEWVERSION}\3/")
+CHECKSUM=$(curl -s -L ${URL} | md5sum | cut -d\  -f 1)
+
+echo -e "archive:\"${URL}\"\nchecksum:\"${CHECKSUM}\"" > ${URLFILE}
