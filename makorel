@@ -3,22 +3,19 @@
 USAGE="usage: makorel version [package]"
 
 # with:
-# - package: name of your package version
 # - version: new version to release
-#
-# If no package name is provided, makorel will assume that you are 
-# in the directory of the package you want to release, and in 
-# its parent directory otherwise.
+# - package: /path/to/package/root/directory (optionnal)
 
-if [ $# -eq 1 ]; then
-    PKG=${PWD##*/}
-elif [ $# -eq 2 ]; then 
-    cd $2;
-    PKG=$2
-else
-    echo "${USAGE}. Exiting with 1."; exit 1
+if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+    echo "${USAGE}. Exiting with 1.";
+    exit 1;
 fi
 
+if [ $# -eq 2 ]; then
+    cd $2;
+fi
+
+PKG=${PWD##*/}
 NEWVERSION=$1
 
 LASTVERSION=$(ls -t | tail -1 | sed -e "s/${PKG}\.\(.*\)/\1/")
