@@ -17,17 +17,16 @@
 //NB: There must be (at least) a previous release available in the opam 
 repo you are in.//
 
-== Dependencies ==
-
-You probably will not have anything to install in order to use ``makorel``.
-
-Here is the list of every commands / programs used: ``echo``, ``cd``, 
-``cp``, ``curl``, ``cut``, ``grep``, ``ls``, ``md5sum``, ``tail``, ``sed``.
-
 == How to install? ==
 
-``makorel`` is a single script file. Save it you a directory which is in 
-your ``PATH``, or run it from its full path.
+Using opam. You will need to add my personnal repo as source.
+```
+$opam repository add sagotch https://github.com/sagotch/opam-repo-dev.git
+
+```
+$opam update
+$opam install makorel
+```
 
 == Usage ==
 
