@@ -84,7 +84,7 @@ let _ =
         (k, replace v prev_ver new_ver)
 
       | "checksum" ->
-         let checksum = Unixx.pipes [[|"curl"; "-s"; new_url|];
+         let checksum = Unixx.pipes [[|"curl"; "-Lsf"; new_url|];
                                      [|"md5sum"|];
                                      [|"cut"; "-d "; "-f"; "1"|]]
                                     Unix.stdin in
