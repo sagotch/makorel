@@ -34,16 +34,17 @@ let rec cp_r src dst =
   else cp_file src dst 
 
 (* http://pleac.sourceforge.net/pleac_ocaml/processmanagementetc.html *)
-(* FIXME: use PID? return PID list to wait for? *)
 let pipes (cmds : (string array) list) init_in : Unix.file_descr =
 
   let pipe cmd input =
     let out_reader, out_writer = Unix.pipe () in
     let pid = Unix.create_process cmd.(0) cmd input out_writer Unix.stderr in
-    (* could wait previous PID here, but less concurrency.
-     * no need to be concurrent if a previous process failed? *)
     Unix.close out_writer;
-    out_reader
+    let _, status = Unix.waitpid [] pid in
+    match status with
+    | Unix.WEXITED 0 -> out_reader
+    | _ -> failwith (String.concat " " (Array.to_list cmd))
+
   in
   (* should check for error before returning*)  
   List.fold_left (fun input cmd -> pipe cmd input) init_in cmds 
