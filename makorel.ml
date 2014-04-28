@@ -3,6 +3,7 @@ open Str
 open Sys
 open Unix
 
+open Curl
 open Urlex
 open Unixx
 
@@ -86,12 +87,19 @@ let _ =
         (k, replace v prev_ver new_ver)
 
       | "checksum" ->
-         let curl_cmd = "curl -Lsf " ^ new_url in
-         let curl_out = open_process_in curl_cmd in
-         let checksum = Digest.channel curl_out (-1) |> Digest.to_hex in
-         if Unix.close_process_in curl_out <> Unix.WEXITED 0
-         then failwith curl_cmd
-         else (k, checksum)
+         (* may need to handle any curl failure? *)
+         let buf = Buffer.create 256 in
+         let h = new Curl.handle in
+         h#set_post false;
+         h#set_url new_url;
+         h#set_followlocation true;
+         h#set_writefunction (fun s -> Buffer.add_string buf s;
+                                       String.length s);
+         h#perform;
+         h#cleanup;
+         (k, Buffer.contents buf
+             |> Digest.string
+             |> Digest.to_hex)
 
       | "mirrors" -> (k, v) (* TODO: something interesting *)
 
