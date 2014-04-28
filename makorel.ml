@@ -93,6 +93,7 @@ let _ =
          h#set_post false;
          h#set_url new_url;
          h#set_followlocation true;
+         h#set_failonerror true;
          h#set_writefunction (fun s -> Buffer.add_string buf s;
                                        String.length s);
          h#perform;
