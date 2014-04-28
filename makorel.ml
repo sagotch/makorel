@@ -1,6 +1,8 @@
+open Digest
+open Str
 open Sys
 open Unix
-open Str
+
 open Urlex
 open Unixx
 
@@ -84,19 +86,17 @@ let _ =
         (k, replace v prev_ver new_ver)
 
       | "checksum" ->
-         let checksum = Unixx.pipes [[|"curl"; "-Lsf"; new_url|];
-                                     [|"md5sum"|];
-                                     [|"cut"; "-d "; "-f"; "1"|]]
-                                    Unix.stdin in
-         (* assumes that everything goes well *)
-         let in_channel = Unix.in_channel_of_descr checksum in
-         let checksum = input_line in_channel in
-         close_in in_channel;
-         print_endline (checksum);
-         (k, checksum)
-           
+         let curl_cmd = "curl -Lsf " ^ new_url in
+         let curl_out = open_process_in curl_cmd in
+         let checksum = Digest.channel curl_out (-1) |> Digest.to_hex in
+         if Unix.close_process_in curl_out <> Unix.WEXITED 0
+         then failwith curl_cmd
+         else (k, checksum)
+
       | "mirrors" -> (k, v) (* TODO: something interesting *)
-      | _ -> prerr_string ("unknown field " ^ k); exit 1
+
+      | _ -> failwith ("unknown field " ^ k)
+
     in List.map process_field url_fields in
 
   (* write to url file *)
