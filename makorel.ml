@@ -22,15 +22,36 @@ let prev_version dir =
 let replace str x y =
   Str.global_replace (Str.regexp (Str.quote x)) y str
 
+let version = "0.1.1"
+
+let new_ver = ref ""
+let root_dir = ref ""
+
+let usage = "usage: makorel [options] -v package_version [options]"
+
+let options =
+  Arg.align [
+      "-v", Arg.Set_string new_ver,
+      "version Package version to create.";
+
+      "-p", Arg.Set_string root_dir,
+      "package Package root directory.";
+
+      "--about", Arg.Unit (fun () ->
+                           print_endline ("makorel version: " ^ version);
+                           print_endline usage;
+                           exit 0),
+      " Print makorel version and usage and exit.";
+    ]
+
 (* main function *)
 let _ =
-  (* TODO: better argument support *)
-  assert (Array.length Sys.argv = 2 || Array.length Sys.argv = 3);
+
+  Arg.parse options (fun s -> raise (Arg.Bad ("Unknown option: " ^ s))) usage;
   
-  let root_dir = if Array.length Sys.argv = 3
-                 then Sys.argv.(2)
-                 else Sys.getcwd () in
-  let new_ver = Sys.argv.(1) in
+  let new_ver = if !new_ver <> "" then !new_ver
+                else failwith "missing parameter: version." in
+  let root_dir = if !root_dir <> "" then !root_dir else Sys.getcwd () in
   let package_name = package_name root_dir in
   let prev_ver = prev_version root_dir in
 
@@ -39,8 +60,6 @@ let _ =
 
   (* Note: copying url file is useless since we will rewrite it. *)  
   cp_r src_dir dst_dir;
-
-  print_endline ("Copied " ^ src_dir ^ " to " ^ dst_dir);
 
   (* Get the value of the first (and supposed only) key matching 
    * a location keyword  *)
@@ -67,7 +86,7 @@ let _ =
       | "checksum" ->
          let checksum = Unixx.pipes [[|"curl"; "-s"; new_url|];
                                      [|"md5sum"|];
-                                     [|"cut"; "-d\\ "; "-f"; "1"|]]
+                                     [|"cut"; "-d "; "-f"; "1"|]]
                                     Unix.stdin in
          (* assumes that everything goes well *)
          let in_channel = Unix.in_channel_of_descr checksum in
@@ -77,18 +96,16 @@ let _ =
          (k, checksum)
            
       | "mirrors" -> (k, v) (* TODO: something interesting *)
-      | _ -> assert false (* TODO: replace string with token when parsing
-                           * in order to be pattern-matching exhaustive 
-                           * and avoiding this useless case *)
+      | _ -> prerr_string ("unknown field " ^ k); exit 1
     in List.map process_field url_fields in
 
   (* write to url file *)
   let url_file =
     open_out (root_dir ^ "/" ^ package_name ^ "." ^ new_ver ^ "/url") in
   List.iter (fun (k, v) -> output_string url_file k;
-                           output_char url_file ':';
+                           output_string url_file ": \"";
                            output_string url_file v;
-                           output_char url_file '\n') processed_fields;
+                           output_string url_file "\"\n") processed_fields;
   close_out url_file;
   print_endline ("Version " ^ new_ver ^ " files (based on " ^ prev_ver
                  ^ ") of package " ^ package_name ^  " succesfully created.")
