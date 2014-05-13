@@ -48,3 +48,19 @@ let pipes (cmds : (string array) list) init_in : Unix.file_descr =
   in
   (* should check for error before returning*)  
   List.fold_left (fun input cmd -> pipe cmd input) init_in cmds 
+
+let mkdir_p path  =
+  (* FIXME: absolute are parsed as relatives (first / is removed by splitting) *)
+  (* FIXME: "my\/bad\/path/" will be splitted as ["my"; "bad"; "path"]
+   * instead of ["my\/bad\/path"]*)
+  path
+  |> Str.split (Str.regexp "/")
+  |> List.iter
+       begin
+         fun dst ->
+         if not (Sys.file_exists dst)
+         then Unix.mkdir dst 0o775
+         else if not (Sys.is_directory dst)
+         then failwith (dst ^ " already exists and is a file");
+         Sys.chdir dst
+       end
