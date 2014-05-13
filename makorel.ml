@@ -25,7 +25,7 @@ let prev_version dir =
 let replace str x y =
   Str.global_replace (Str.regexp (Str.quote x)) y str
 
-let version = "0.1.1"
+let version = "0.2.0"
 
 let new_ver = ref ""
 let root_dir = ref ""
