@@ -25,36 +25,61 @@ let prev_version dir =
 let replace str x y =
   Str.global_replace (Str.regexp (Str.quote x)) y str
 
-let version = "0.2.0"
+(* FIXME: May avoid hardcoded file content?
+ * or at least avoid global_replace. *)
+let init root_dir version =
+  let package_name = package_name root_dir in
+  let opam_items =
+    "opam-version: STRING
+     # name: STRING
+     # version: STRING
+     maintainer: STRING
+     # homepage: STRING
+     # authors: [ STRING+ ]
+     # doc: STRING
+     # license: STRING
+     # tags: [ STRING+ ]
+     # subst: [ STRING+ ]
+     # patches: [ (STRING { <filter> } )+ ]
+     # build: commands
+     # build-doc: commands
+     # build-test: commands
+     # remove: commands
+     # depends: [ <and-formula(package)>+ ]
+     # depopts: [ <or-formula(package)>+ ]
+     # depexts: [ [[STRING+] [STRING+]]+ ]
+     # conflicts: [ <package>+ ]
+     # messages: [ (STRING { <filter> } )+ ]
+     # post-messages: [ (STRING { <filter> } )+ ]
+     # available: [ <filter> ]
+     # os: [ <formula(os)>+ ]
+     # ocaml-version: [ <and-formula(constraint)>+ ]
+     # libraries: [ STRING+ ]
+     # syntax: [ STRING+ ]
+     " |> Str.global_replace (Str.regexp "^     ") "" in
+  let url_items =
+    "# src: STRING
+     # archive: STRING
+     # http: STRING
+     # local: STRING
+     # git: STRING
+     # darcs: STRING
+     # hg: STRING
+     # mirrors: [ STRING+ ]
+     # checksum: STRING
+     " |> Str.global_replace (Str.regexp "^     ") "" in
+  let write_file path content =
+    let out = Pervasives.open_out path in
+    Pervasives.output_string out content;
+    Pervasives.close_out out in
+  let dir = root_dir ^ "/" ^ package_name ^ "." ^ version in
+  mkdir_p dir;
+  write_file (dir ^ "/descr") "No description yet.\n";
+  write_file (dir ^ "/opam") opam_items;
+  write_file (dir ^ "/url") url_items
 
-let new_ver = ref ""
-let root_dir = ref ""
+let upgrade root_dir new_ver =
 
-let usage = "usage: makorel [options] -v package_version [options]"
-
-let options =
-  Arg.align [
-      "-v", Arg.Set_string new_ver,
-      "version Package version to create.";
-
-      "-p", Arg.Set_string root_dir,
-      "package Package root directory.";
-
-      "--about", Arg.Unit (fun () ->
-                           print_endline ("makorel version: " ^ version);
-                           print_endline usage;
-                           exit 0),
-      " Print makorel version and usage and exit.";
-    ]
-
-(* main function *)
-let _ =
-
-  Arg.parse options (fun s -> raise (Arg.Bad ("Unknown option: " ^ s))) usage;
-  
-  let new_ver = if !new_ver <> "" then !new_ver
-                else failwith "missing parameter: version." in
-  let root_dir = if !root_dir <> "" then !root_dir else Sys.getcwd () in
   let package_name = package_name root_dir in
   let prev_ver = prev_version root_dir in
 
@@ -84,7 +109,7 @@ let _ =
     let process_field (k, v) = match k with
 
       | "src" | "archive"| "http" | "local" | "git" | "darcs" | "hg" ->
-        (k, replace v prev_ver new_ver)
+         (k, replace v prev_ver new_ver)
 
       | "checksum" ->
          (* may need to handle any curl failure? *)
@@ -118,3 +143,44 @@ let _ =
   close_out url_file;
   print_endline ("Version " ^ new_ver ^ " files (based on " ^ prev_ver
                  ^ ") of package " ^ package_name ^  " succesfully created.")
+
+
+(* main function *)
+let _ =
+
+  let makorel_version = "0.2.0" in
+
+  let create = ref false in
+  let version = ref "" in
+  let root_dir = ref "" in
+
+  let usage = "usage: makorel [options]" in
+
+  let options =
+    Arg.align [
+        "-i", Arg.Set create,
+        " initialize a new package release (not based on a previous one).";
+
+        "-v", Arg.Set_string version,
+        "version Package version to create. MANDATORY.";
+
+        "-p", Arg.Set_string root_dir,
+        "package Package root directory. Default is current directory.";
+
+        "--about", Arg.Unit (fun () ->
+                             print_endline ("makorel version: "
+                                            ^ makorel_version);
+                             print_endline usage;
+                             exit 0),
+        " Print makorel version and usage and exit.";
+      ] in
+
+  Arg.parse options (fun s -> raise (Arg.Bad ("Unknown option: " ^ s))) usage;
+
+  let version = if !version <> "" then !version
+                else failwith "missing parameter: version." in
+  let root_dir = if !root_dir <> "" then !root_dir else Sys.getcwd () in
+  let root_dir = Str.global_replace (Str.regexp "/$") "" root_dir in
+
+  if !create then init root_dir version
+  else upgrade root_dir version
