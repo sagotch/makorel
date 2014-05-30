@@ -74,7 +74,7 @@ let init root_dir version =
     Pervasives.close_out out in
   let dir = root_dir ^ "/" ^ package_name ^ "." ^ version in
   mkdir_p dir;
-  write_file (dir ^ "/descr") "No description yet.\n";
+  write_file (dir ^ "/descr") (package_name ^ " - No description yet.\n");
   write_file (dir ^ "/opam") opam_items;
   write_file (dir ^ "/url") url_items
 
@@ -148,7 +148,7 @@ let upgrade root_dir new_ver =
 (* main function *)
 let _ =
 
-  let makorel_version = "0.2.0" in
+  let makorel_version = "0.2.1" in
 
   let create = ref false in
   let version = ref "" in

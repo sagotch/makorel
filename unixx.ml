@@ -53,6 +53,7 @@ let mkdir_p path  =
   (* FIXME: absolute are parsed as relatives (first / is removed by splitting) *)
   (* FIXME: "my\/bad\/path/" will be splitted as ["my"; "bad"; "path"]
    * instead of ["my\/bad\/path"]*)
+  let initial_dir = Sys.getcwd () in
   path
   |> Str.split (Str.regexp "/")
   |> List.iter
@@ -63,4 +64,5 @@ let mkdir_p path  =
          else if not (Sys.is_directory dst)
          then failwith (dst ^ " already exists and is a file");
          Sys.chdir dst
-       end
+       end;
+  Sys.chdir initial_dir
