@@ -126,6 +126,7 @@ let upgrade root_dir new_ver =
              |> Digest.to_hex)
 
       | "mirrors" -> (k, v) (* TODO: something interesting *)
+      | "comment" -> (k, v) (* TODO: something interesting *)
 
       | _ -> failwith ("unknown field " ^ k)
 
@@ -134,10 +135,15 @@ let upgrade root_dir new_ver =
   (* write to url file *)
   let url_file =
     open_out (root_dir ^ "/" ^ package_name ^ "." ^ new_ver ^ "/url") in
-  List.iter (fun (k, v) -> output_string url_file k;
-                           output_string url_file ": \"";
-                           output_string url_file v;
-                           output_string url_file "\"\n") processed_fields;
+  List.iter (fun (k, v) ->
+    if k = "comment" then
+      output_string url_file v
+    else begin
+      output_string url_file k;
+      output_string url_file ": \"";
+      output_string url_file v;
+      output_char url_file '\"' end ;
+    output_char url_file '\n') processed_fields;
   close_out url_file;
   print_endline ("Version " ^ new_ver ^ " files (based on " ^ prev_ver
                  ^ ") of package " ^ package_name ^  " succesfully created.")

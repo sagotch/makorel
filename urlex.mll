@@ -15,6 +15,13 @@ rule main acc = parse
 
 | layout { main acc lexbuf }
 
+| ('#' [^ '\n']* '\n' as com) { main (("comment", com) :: acc) lexbuf }
+
+| "(*" { let buf = Buffer.create 16 in
+         Buffer.add_string buf "(*" ;
+         let com = comment buf 1 lexbuf in
+         main (("comment", com) :: acc) lexbuf }
+
 | (field as f) layout* ":" layout*
   { let s = value lexbuf in main ((f, s) :: acc) lexbuf }
 
@@ -44,6 +51,18 @@ and string buff = parse
 | "\"" { Buffer.contents buff }
 
 | _ as c { Buffer.add_char buff c; string buff lexbuf }
+
+and comment buf depth = parse
+
+| "*)" { Buffer.add_string buf "*)" ;
+         if depth = 1 then Buffer.contents buf
+         else comment buf (depth - 1) lexbuf }
+
+| "(*" { Buffer.add_string buf "(*" ;
+         comment buf (depth + 1) lexbuf }
+
+| _ as c {  Buffer.add_char buf c ;
+            comment buf depth lexbuf }
 
 { 
   let parse lexbuf = main [] lexbuf
