@@ -30,44 +30,42 @@ let replace str x y =
 let init root_dir version =
   let package_name = package_name root_dir in
   let opam_items =
-    "opam-version: STRING
-     # name: STRING
-     # version: STRING
-     maintainer: STRING
-     # homepage: STRING
-     # authors: [ STRING+ ]
-     # doc: STRING
-     # license: STRING
-     # tags: [ STRING+ ]
-     # subst: [ STRING+ ]
-     # patches: [ (STRING { <filter> } )+ ]
-     # build: commands
-     # build-doc: commands
-     # build-test: commands
-     # remove: commands
-     # depends: [ <and-formula(package)>+ ]
-     # depopts: [ <or-formula(package)>+ ]
-     # depexts: [ [[STRING+] [STRING+]]+ ]
-     # conflicts: [ <package>+ ]
-     # messages: [ (STRING { <filter> } )+ ]
-     # post-messages: [ (STRING { <filter> } )+ ]
-     # available: [ <filter> ]
-     # os: [ <formula(os)>+ ]
-     # ocaml-version: [ <and-formula(constraint)>+ ]
-     # libraries: [ STRING+ ]
-     # syntax: [ STRING+ ]
-     " |> Str.global_replace (Str.regexp "^     ") "" in
+    "opam-version: STRING\n\
+     # name: STRING\n\
+     # version: STRING\n\
+     maintainer: STRING\n\
+     # homepage: STRING\n\
+     # authors: [ STRING+ ]\n\
+     # doc: STRING\n\
+     # license: STRING\n\
+     # tags: [ STRING+ ]\n\
+     # subst: [ STRING+ ]\n\
+     # patches: [ (STRING { <filter> } )+ ]\n\
+     # build: commands\n\
+     # build-doc: commands\n\
+     # build-test: commands\n\
+     # remove: commands\n\
+     # depends: [ <and-formula(package)>+ ]\n\
+     # depopts: [ <or-formula(package)>+ ]\n\
+     # depexts: [ [[STRING+] [STRING+]]+ ]\n\
+     # conflicts: [ <package>+ ]\n\
+     # messages: [ (STRING { <filter> } )+ ]\n\
+     # post-messages: [ (STRING { <filter> } )+ ]\n\
+     # available: [ <filter> ]\n\
+     # os: [ <formula(os)>+ ]\n\
+     # ocaml-version: [ <and-formula(constraint)>+ ]\n\
+     # libraries: [ STRING+ ]\n\
+     # syntax: [ STRING+ ]\n" in
   let url_items =
-    "# src: STRING
-     # archive: STRING
-     # http: STRING
-     # local: STRING
-     # git: STRING
-     # darcs: STRING
-     # hg: STRING
-     # mirrors: [ STRING+ ]
-     # checksum: STRING
-     " |> Str.global_replace (Str.regexp "^     ") "" in
+    "# src: STRING\n\
+     # archive: STRING\n\
+     # http: STRING\n\
+     # local: STRING\n\
+     # git: STRING\n\
+     # darcs: STRING\n\
+     # hg: STRING\n\
+     # mirrors: [ STRING+ ]\n\
+     # checksum: STRING\n" in
   let write_file path content =
     let out = Pervasives.open_out path in
     Pervasives.output_string out content;
