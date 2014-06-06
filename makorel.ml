@@ -4,7 +4,6 @@ open Sys
 open Unix
 
 open Curl
-open Urlex
 open Unixx
 
 (* Strip the path and a trailing '/' if present *)
@@ -20,8 +19,8 @@ let prev_version dir =
   |> List.rev
   |> List.hd
   |> Str.global_replace (Str.regexp "^[^\\.]*.\\([^/]+\\)/?$") "\\1"
-  
-(* replace string part matching  x with y *)
+
+(* replace string part matching x with y *)
 let replace str x y =
   Str.global_replace (Str.regexp (Str.quote x)) y str
 
@@ -84,75 +83,81 @@ let upgrade root_dir new_ver =
   let src_dir = (root_dir ^ "/" ^ package_name ^ "." ^ prev_ver) in
   let dst_dir = (root_dir ^ "/" ^ package_name ^ "." ^ new_ver) in
 
-  (* Note: copying url file is useless since we will rewrite it. *)  
+  (* Note: copying url file is useless since we will rewrite it. *)
   cp_r src_dir dst_dir;
 
-  (* Get the value of the first (and supposed only) key matching 
-   * a location keyword  *)
-  let main_url fields =
-    let keys = ["src"; "archive"; "http"; "local"; "git"; "hg"; "darcs"] in
-    snd (List.find (fun (k, _) -> List.mem k keys) fields) in
+  let update_url old_file new_file =
 
-  (* parse original url file *)
-  let url_fields =
-    Urlex.from_filename
-      (root_dir ^ "/" ^ package_name ^ "." ^ prev_ver ^ "/url") in
+    (* find url for the new version replacing the version number
+     * in the previous url *)
+    let rep_url url = replace url prev_ver new_ver in
 
-  (* find url for the new version replacing the version number 
-   * in the previous url *)
-  let new_url = replace (main_url url_fields) prev_ver new_ver in
-  
-  (* update every fields according to this new url *)
-  let processed_fields = 
-    let process_field (k, v) = match k with
+    let whitespace = "[ \t]*" in
+    let line_regex =
+      Str.regexp
+        (whitespace
+         ^ "\\(archive\\|checksum\\|darcs\\|git\\|hg\\|local\\|http\\|src\\)"
+         ^ whitespace ^ ":" ^ whitespace
+         ^ "\\\"\\([^\\\"]*\\)\\\"" ^ whitespace) in
+    (* \1 is field name, \2 is its value *)
 
-      | "src" | "archive"| "http" | "local" | "git" | "darcs" | "hg" ->
-         (k, replace v prev_ver new_ver)
+    let checksum url =
+      (* may need to handle any curl failure? *)
+      let buf = Buffer.create 256 in
+      let h = new Curl.handle in
+      h#set_post false;
+      h#set_url url;
+      h#set_followlocation true;
+      h#set_failonerror true;
+      h#set_writefunction
+          (fun s -> Buffer.add_string buf s;
+                    String.length s);
+      h#perform;
+      h#cleanup;
+      Buffer.contents buf |> Digest.string |> Digest.to_hex in
 
-      | "checksum" ->
-         (* may need to handle any curl failure? *)
-         let buf = Buffer.create 256 in
-         let h = new Curl.handle in
-         h#set_post false;
-         h#set_url new_url;
-         h#set_followlocation true;
-         h#set_failonerror true;
-         h#set_writefunction (fun s -> Buffer.add_string buf s;
-                                       String.length s);
-         h#perform;
-         h#cleanup;
-         (k, Buffer.contents buf
-             |> Digest.string
-             |> Digest.to_hex)
 
-      | "mirrors" -> (k, v) (* TODO: something interesting *)
-      | "comment" -> (k, v) (* TODO: something interesting *)
+    let in_ch = Pervasives.open_in old_file in
+    let out_ch = Pervasives.open_out new_file in
+    let output line = Pervasives.output_string out_ch line;
+                      Pervasives.output_char out_ch '\n' in
+    let main_url = ref "" in
 
-      | _ -> failwith ("unknown field " ^ k)
-
-    in List.map process_field url_fields in
-
-  (* write to url file *)
-  let url_file =
-    open_out (root_dir ^ "/" ^ package_name ^ "." ^ new_ver ^ "/url") in
-  List.iter (fun (k, v) ->
-    if k = "comment" then
-      output_string url_file v
-    else begin
-      output_string url_file k;
-      output_string url_file ": \"";
-      output_string url_file v;
-      output_char url_file '\"' end ;
-    output_char url_file '\n') processed_fields;
-  close_out url_file;
-  print_endline ("Version " ^ new_ver ^ " files (based on " ^ prev_ver
-                 ^ ") of package " ^ package_name ^  " succesfully created.")
-
+    let rec update_line () =
+      try let line = Pervasives.input_line in_ch in
+          let line =
+            if Str.string_match line_regex line 0
+            then match Str.matched_group 1 line with
+                 | "src" | "archive" | "http" | "local" ->
+                   main_url := rep_url (Str.matched_group 2 line);
+                   rep_url line
+                 | "checksum" ->
+                    if !main_url = ""
+                    then "#" ^ line
+                    else Str.string_before line (Str.group_beginning 2)
+                         ^ checksum !main_url
+                         ^ Str.string_after line (Str.group_end 2)
+                 | _ -> rep_url line
+            else rep_url line in
+          output line;
+          update_line ()
+      with End_of_file ->
+        Pervasives.close_in in_ch;
+        Pervasives.close_out out_ch;
+    in
+    update_line ();
+    print_endline @@ "Version " ^ new_ver ^ " files (based on " ^ prev_ver
+                     ^ ") of package " ^ package_name
+                     ^ " succesfully created."
+  in
+  update_url
+    (src_dir ^ "/url")
+    (dst_dir ^ "/url")
 
 (* main function *)
 let _ =
 
-  let makorel_version = "0.2.1" in
+  let makorel_version = "0.2.2" in
 
   let create = ref false in
   let version = ref "" in
