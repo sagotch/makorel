@@ -148,7 +148,7 @@ let upgrade root_dir new_ver =
 (* main function *)
 let _ =
 
-  let makorel_version = "0.2.2" in
+  let makorel_version = "0.2.3" in
 
   let create = ref false in
   let version = ref "" in
