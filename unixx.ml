@@ -20,10 +20,8 @@ let rec cp_file src dst =
   close dst
 
 (* recursive copy *)
-let rec cp_r src dst =  
+let rec cp_r src dst =
   let cp_dir src dst =
-    (* FIXME: Assumes that there is no trailing '/' 
-     * at the end of dst / src *)
     let files = Sys.readdir src |> Array.to_list in
     Unix.mkdir dst 0o775;
     List.map (fun x -> src ^ "/" ^ x, dst ^ "/" ^ x) files
@@ -31,7 +29,7 @@ let rec cp_r src dst =
   in
   if is_directory src
   then cp_dir src dst
-  else cp_file src dst 
+  else cp_file src dst
 
 (* http://pleac.sourceforge.net/pleac_ocaml/processmanagementetc.html *)
 let pipes (cmds : (string array) list) init_in : Unix.file_descr =
@@ -46,14 +44,14 @@ let pipes (cmds : (string array) list) init_in : Unix.file_descr =
     | _ -> failwith (String.concat " " (Array.to_list cmd))
 
   in
-  (* should check for error before returning*)  
-  List.fold_left (fun input cmd -> pipe cmd input) init_in cmds 
+  (* should check for error before returning*)
+  List.fold_left (fun input cmd -> pipe cmd input) init_in cmds
 
-let mkdir_p path  =
-  (* FIXME: absolute are parsed as relatives (first / is removed by splitting) *)
+let mkdir_p path =
   (* FIXME: "my\/bad\/path/" will be splitted as ["my"; "bad"; "path"]
    * instead of ["my\/bad\/path"]*)
   let initial_dir = Sys.getcwd () in
+  if path.[0] = '/' then Sys.chdir "/" ;
   path
   |> Str.split (Str.regexp "/")
   |> List.iter
