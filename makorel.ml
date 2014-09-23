@@ -177,11 +177,16 @@ let _ =
         "package Package root directory. Default is current directory.";
 
         "--about", Arg.Unit (fun () ->
-                             print_endline ("makorel version: "
-                                            ^ makorel_version);
+                             print_string "makorel version: " ;
+                             print_endline makorel_version ;
                              print_endline usage;
                              exit 0),
         " Print makorel version and usage and exit.";
+
+        "--version", Arg.Unit (fun () -> print_endline makorel_version ;
+                                         exit 0),
+        " Print makorel version and exit";
+
       ] in
 
   Arg.parse options (fun s -> raise (Arg.Bad ("Unknown option: " ^ s))) usage;
